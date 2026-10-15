@@ -1,0 +1,26 @@
+
+import numpy as np
+
+def compute_covariance(a, b):
+    return np.cov(a, b, ddof=1)[0, 1]
+
+def compute_correlation(a, b):
+    return np.corrcoef(a, b)[0, 1]
+
+data = np.array([
+    [1, 2, 3],
+    [4, 5, 6],
+    [7, 8, 9]
+])
+
+a = data[:, 0]
+b = data[:, 1]
+
+print("Covariance:", compute_covariance(a, b))
+print("Correlation:", compute_correlation(a, b))
+
+print("\nCovariance Matrix:")
+print(np.cov(data, rowvar=False, ddof=1))
+
+print("\nCorrelation Matrix:")
+print(np.corrcoef(data, rowvar=False))
