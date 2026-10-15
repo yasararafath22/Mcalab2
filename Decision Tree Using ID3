@@ -1,0 +1,101 @@
+
+import numpy as np
+import math
+import csv
+
+def read_data(filename):
+    with open(filename, 'r') as file:
+        reader = csv.reader(file)
+        headers = next(reader)
+        data = [row for row in reader if len(row) == len(headers)]
+    return np.array(headers), np.array(data)
+
+class Node:
+    def __init__(self, attribute):
+        self.attribute = attribute
+        self.children = []
+        self.answer = ""
+
+def subtables(data, col, delete):
+    tables = {}
+    items = np.unique(data[:, col])
+    for item in items:
+        subset = data[data[:, col] == item]
+        if delete:
+            subset = np.delete(subset, col, axis=1)
+        tables[item] = subset
+    return items, tables
+
+def entropy(S):
+    _, counts = np.unique(S, return_counts=True)
+    return -sum((c / len(S)) * math.log2(c / len(S)) for c in counts)
+
+def gain_ratio(data, col):
+    items, tables = subtables(data, col, False)
+    gain = entropy(data[:, -1])
+    intrinsic = 0
+    total = len(data)
+
+    for item in items:
+        ratio = len(tables[item]) / total
+        gain -= ratio * entropy(tables[item][:, -1])
+        if ratio:
+            intrinsic -= ratio * math.log2(ratio)
+
+    return gain / intrinsic if intrinsic else 0
+
+def create_node(data, metadata):
+    if len(np.unique(data[:, -1])) == 1:
+        node = Node("")
+        node.answer = data[0, -1]
+        return node
+
+    if data.shape[1] == 1:
+        node = Node("")
+        values, counts = np.unique(data[:, -1], return_counts=True)
+        node.answer = values[np.argmax(counts)]
+        return node
+
+    gains = [gain_ratio(data, col) for col in range(data.shape[1] - 1)]
+    split = np.argmax(gains)
+    node = Node(metadata[split])
+    new_metadata = np.delete(metadata, split)
+    items, tables = subtables(data, split, True)
+
+    for item in items:
+        node.children.append((item, create_node(tables[item], new_metadata)))
+
+    return node
+
+def print_tree(node, level=0):
+    if node.answer:
+        print(" " * level + node.answer)
+        return
+    print(" " * level + node.attribute)
+    for value, child in node.children:
+        print(" " * (level + 1) + str(value))
+        print_tree(child, level + 2)
+
+metadata, traindata = read_data("tennisdata.csv")
+node = create_node(traindata, metadata)
+print("Decision Tree using ID3 Algorithm:")
+print_tree(node)
+
+
+create another file tennisdata.csv
+
+Outlook,Temperature,Humidity,Windy,Play
+Sunny,Hot,High,FALSE,No
+Sunny,Hot,High,TRUE,No
+Overcast,Hot,High,FALSE,Yes
+Rainy,Mild,High,FALSE,Yes
+Rainy,Cool,Normal,FALSE,Yes
+Rainy,Cool,Normal,TRUE,No
+Overcast,Cool,Normal,TRUE,Yes
+Sunny,Mild,High,FALSE,No
+Sunny,Cool,Normal,FALSE,Yes
+Rainy,Mild,Normal,FALSE,Yes
+Sunny,Mild,Normal,TRUE,Yes
+Overcast,Mild,High,TRUE,Yes
+Overcast,Hot,Normal,FALSE,Yes
+Rainy,Mild,High,TRUE,No
